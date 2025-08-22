@@ -1,1 +1,1 @@
-# yusuf.github.io
+# hızlı okuma.github.io
