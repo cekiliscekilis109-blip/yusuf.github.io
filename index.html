@@ -1,5 +1,881 @@
 <!DOCTYPE html>
 <html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gelişmiş Platform Oyunu</title>
+    <style>
+      /* GENEL STİL */
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        overflow: hidden;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: #111;
+        height: 100vh;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        color: #fff;
+      }
+      #game-container {
+        position: relative;
+        width: 1024px;
+        height: 768px;
+        overflow: hidden;
+        border: 4px solid #1a1a1a;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+        background: linear-gradient(#65467e, #31213b);
+        user-select: none;
+      }
+
+      /* PARALAKS ARKAPLAN KATMANLARI */
+      .parallax-layer {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        background-repeat: no-repeat;
+        background-size: cover;
+      }
+      .layer-back {
+        z-index: 1;
+        background-image: linear-gradient(#1a1a2e, #16213e);
+        opacity: 0.7;
+      }
+      .layer-mid {
+        z-index: 2;
+        background-image: radial-gradient(ellipse at 50% 70%, rgba(255,255,255,0.05), rgba(0,0,0,0) 60%);
+        opacity: 0.6;
+      }
+      .layer-front {
+        z-index: 3;
+        background-image: linear-gradient(transparent, rgba(0,0,0,0.25));
+        opacity: 0.5;
+      }
+
+      /* ZEMİN HATTI (referans) */
+      .ground-line {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 60px;
+        height: 2px;
+        background: rgba(255,255,255,0.08);
+        z-index: 4;
+      }
+
+      /* KARAKTER */
+      #player {
+        position: absolute;
+        width: 48px;
+        height: 60px;
+        bottom: 100px;
+        left: 100px;
+        background: #ff3300;
+        border-radius: 10px 10px 0 0;
+        z-index: 20;
+        transition: transform 0.08s;
+        box-shadow: 0 0 10px rgba(255, 51, 0, 0.7);
+      }
+      #player::before {
+        content: '';
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        background: #fff;
+        border-radius: 50%;
+        top: 10px;
+        left: 14px;
+        box-shadow: 0 0 5px #fff;
+      }
+      #player::after {
+        content: '';
+        position: absolute;
+        width: 30px;
+        height: 10px;
+        background: #333;
+        bottom: -5px;
+        left: 9px;
+        border-radius: 5px;
+      }
+      .player-running {
+        animation: player-run 0.5s infinite alternate;
+      }
+      @keyframes player-run {
+        0% {
+          transform: translateY(0) rotate(0deg);
+        }
+        100% {
+          transform: translateY(-3px) rotate(1deg);
+        }
+      }
+      .player-gliding {
+        animation: player-glide 1s infinite alternate ease-in-out;
+      }
+      @keyframes player-glide {
+        0% { transform: translateY(0); }
+        100% { transform: translateY(-5px); }
+      }
+      .player-invincible {
+        animation: player-inv 0.5s infinite alternate;
+      }
+      @keyframes player-inv {
+        0% { opacity: 0.5; }
+        100% { opacity: 1; }
+      }
+
+      /* PLATFORMLAR */
+      .platform {
+        position: absolute;
+        height: 20px;
+        background: #4a287a;
+        box-shadow: 0 6px 14px rgba(0,0,0,0.4);
+        z-index: 10;
+        border-radius: 5px;
+      }
+
+      /* DÜŞMANLAR */
+      .enemy {
+        position: absolute;
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, #e74c3c, #c0392b);
+        border-radius: 50%;
+        z-index: 15;
+        box-shadow: 0 0 10px rgba(231, 76, 60, 0.7);
+      }
+      .enemy .health-bar {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: -8px;
+        height: 4px;
+        background: #444;
+        border: 1px solid #fff;
+        border-radius: 2px;
+        overflow: hidden;
+      }
+      .enemy .health-fill {
+        height: 100%;
+        width: 100%;
+        background: #2ecc71;
+      }
+
+      /* MERMİLER */
+      .bullet {
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #ffc700, #ff9b00);
+        box-shadow: 0 0 5px #ffc700;
+        z-index: 30;
+      }
+
+      /* KAPI */
+      .door {
+        position: absolute;
+        width: 60px;
+        height: 90px;
+        background: linear-gradient(to right, #8b4513, #a0522d);
+        border: 3px solid #5d2906;
+        z-index: 10;
+        border-radius: 4px;
+      }
+
+      /* HUD VE ARAYÜZ */
+      .hud {
+        position: absolute;
+        top: 15px;
+        left: 15px;
+        display: flex;
+        flex-direction: column;
+        z-index: 50;
+        color: #fff;
+        text-shadow: 1px 1px 2px #000;
+        font-size: 16px;
+        font-weight: bold;
+        background: rgba(0, 0, 0, 0.6);
+        padding: 10px;
+        border-radius: 5px;
+        gap: 6px;
+      }
+      .health-bar, .shield-bar {
+        width: 150px;
+        height: 14px;
+        background: #444;
+        border: 1px solid #fff;
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      #health-fill {
+        height: 100%;
+        background: #e74c3c;
+        width: 100%;
+        transition: width 0.2s;
+      }
+      #shield-fill {
+        height: 100%;
+        background: #3498db;
+        width: 0%;
+        transition: width 0.2s;
+      }
+      #weapon-info {
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: #fff;
+        text-shadow: 1px 1px 2px #000;
+        z-index: 50;
+        font-weight: bold;
+        display: flex;
+        gap: 10px;
+        background: rgba(0, 0, 0, 0.6);
+        padding: 8px 12px;
+        border-radius: 6px;
+      }
+
+      .overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 100;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.25s;
+      }
+      .overlay.show {
+        opacity: 1;
+        pointer-events: auto;
+      }
+      .box {
+        background: #2c3e50;
+        color: #fff;
+        padding: 30px 40px;
+        border-radius: 8px;
+        text-align: center;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        max-width: 80%;
+      }
+      .btn {
+        background: #3498db;
+        border: none;
+        color: #fff;
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+        border-radius: 4px;
+        transition: background 0.2s;
+        margin: 5px;
+      }
+      .btn:hover { background: #2980b9; }
+
+      #message-box {
+        position: absolute;
+        top: 15%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0,0,0,0.7);
+        color: #fff;
+        padding: 10px 16px;
+        border-radius: 8px;
+        font-size: 16px;
+        z-index: 95;
+        text-align: center;
+        opacity: 0;
+        transition: opacity 0.25s;
+      }
+
+      .mini-map { position: absolute; bottom: 20px; right: 20px; width: 150px; height: 150px; background: rgba(0,0,0,0.6); border: 2px solid #3498db; border-radius: 5px; z-index: 90; }
+
+      /* Duyarlı ölçekleme */
+      @media (max-width: 1100px) { #game-container { transform: scale(0.85); } }
+      @media (max-width: 900px) { #game-container { transform: scale(0.75); } }
+      @media (max-width: 700px) { #game-container { transform: scale(0.6); } .hud { font-size: 14px; } #weapon-info { font-size: 14px; } }
+    </style>
+  </head>
+  <body>
+    <div id="game-container">
+      <div class="parallax-layer layer-back"></div>
+      <div class="parallax-layer layer-mid"></div>
+      <div class="parallax-layer layer-front"></div>
+      <div class="ground-line"></div>
+
+      <div id="player"></div>
+
+      <div class="hud">
+        <div id="score">Jeton: 0</div>
+        <div id="level-display">Seviye: 1</div>
+        <div>Can:</div>
+        <div class="health-bar"><div id="health-fill"></div></div>
+        <div>Kalkan:</div>
+        <div class="shield-bar"><div id="shield-fill"></div></div>
+      </div>
+
+      <div id="weapon-info">
+        <div id="weapon-name">Silah: Tabanca</div>
+        <div id="ammo-display">Mermi: ∞</div>
+      </div>
+
+      <div class="mini-map"></div>
+
+      <div id="message-box"></div>
+      <div id="achievement-container"></div>
+
+      <div id="start-screen" class="overlay show">
+        <div class="box">
+          <h1 style="margin:0 0 20px 0;">GELİŞMİŞ PLATFORM OYUNU</h1>
+          <div style="margin-bottom:20px;">
+            <button class="btn" onclick="startGame('story')">Hikaye Modu</button>
+            <button class="btn" onclick="startGame('arcade')">Arcade Modu</button>
+            <button class="btn" onclick="showSettings()">Ayarlar</button>
+          </div>
+          <h3>Denetleyici</h3>
+          <p>Hareket: A/D veya Sol/Sağ Oklar<br>Zıpla: W veya Yukarı Ok<br>Ateş: Boşluk</p>
+          <p>Silah Değiştir: 1..3<br>Duraklat: ESC</p>
+        </div>
+      </div>
+
+      <div id="pause-screen" class="overlay">
+        <div class="box">
+          <h1>Duraklatıldı</h1>
+          <button class="btn" onclick="resumeGame()">Devam Et</button>
+          <button class="btn" onclick="showSettings()">Ayarlar</button>
+          <button class="btn" onclick="exitToMenu()">Menüye Dön</button>
+        </div>
+      </div>
+
+      <div id="game-over-screen" class="overlay">
+        <div class="box">
+          <h1>Oyun Bitti</h1>
+          <p>Toplam Jeton: <span id="final-score">0</span></p>
+          <button class="btn" onclick="restartGame()">Yeniden Dene</button>
+          <button class="btn" onclick="exitToMenu()">Menüye Dön</button>
+        </div>
+      </div>
+
+      <div id="you-win-screen" class="overlay">
+        <div class="box">
+          <h1>Tebrikler! Oyunu Tamamladın!</h1>
+          <p>Toplam Jeton: <span id="final-score-win">0</span></p>
+          <p>Öldürülen Düşmanlar: <span id="total-kills">0</span></p>
+          <p>Tamamlanan Seviyeler: <span id="completed-levels">0</span></p>
+          <button class="btn" onclick="restartGame()">Yeniden Oyna</button>
+          <button class="btn" onclick="exitToMenu()">Menüye Dön</button>
+        </div>
+      </div>
+
+      <div id="settings-screen" class="overlay">
+        <div class="box" style="width:420px;max-width:90%;text-align:left;">
+          <h2 style="text-align:center;">Ayarlar</h2>
+          <div style="margin: 15px 0;">
+            <label>Ses Seviyesi</label>
+            <input type="range" id="volume-slider" min="0" max="100" value="50" style="width:100%" />
+          </div>
+          <div style="margin: 15px 0;">
+            <label>Zorluk</label>
+            <select id="difficulty-select" style="width:100%;padding:6px;border-radius:6px;">
+              <option value="easy">Kolay</option>
+              <option value="normal" selected>Normal</option>
+              <option value="hard">Zor</option>
+            </select>
+          </div>
+          <div style="text-align:center;">
+            <button class="btn" onclick="saveSettings()">Kaydet ve Kapat</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ===================== Sabitler ve Durum =====================
+      const container = document.getElementById('game-container');
+      const playerEl = document.getElementById('player');
+      const scoreEl = document.getElementById('score');
+      const levelEl = document.getElementById('level-display');
+      const healthFillEl = document.getElementById('health-fill');
+      const shieldFillEl = document.getElementById('shield-fill');
+      const weaponNameEl = document.getElementById('weapon-name');
+      const ammoEl = document.getElementById('ammo-display');
+
+      const startScreen = document.getElementById('start-screen');
+      const pauseScreen = document.getElementById('pause-screen');
+      const gameOverScreen = document.getElementById('game-over-screen');
+      const youWinScreen = document.getElementById('you-win-screen');
+      const settingsScreen = document.getElementById('settings-screen');
+
+      const messageBox = document.getElementById('message-box');
+
+      const GAME_WIDTH = 1024;
+      const GAME_HEIGHT = 768;
+      const GRAVITY = 0.9;
+      const GROUND_Y = 60;
+      const MAX_LEVEL = 5;
+
+      let gameRunning = false;
+      let isPaused = false;
+      let lastTime = 0;
+      let level = 1;
+      let score = 0;
+      let totalKills = 0;
+      let difficulty = 'normal';
+      const keys = {};
+
+      const player = {
+        x: 100,
+        y: 120,
+        w: 48,
+        h: 60,
+        vx: 0,
+        vy: 0,
+        speed: 4,
+        jumpSpeed: 18,
+        onGround: false,
+        facing: 1,
+        health: 100,
+        healthMax: 100,
+        shield: 0,
+        shieldMax: 0,
+        currentWeapon: 'pistol',
+      };
+
+      const weapons = {
+        pistol: { name: 'Tabanca', damage: 10, cooldown: 180, speed: 12, ammo: Infinity, maxAmmo: Infinity, cooldownTimer: 0 },
+        uzi:    { name: 'Uzi',     damage: 6,  cooldown: 90,  speed: 16, ammo: 120,      maxAmmo: 120,      cooldownTimer: 0 },
+        deagle: { name: 'Deagle',  damage: 20, cooldown: 400, speed: 14, ammo: 24,       maxAmmo: 24,       cooldownTimer: 0 },
+      };
+
+      // Dünyadaki nesneler
+      let platforms = [];
+      let enemies = [];
+      let bullets = [];
+      let doors = [];
+
+      let enemiesToKill = 0;
+      let enemiesKilled = 0;
+      let lastEnemySpawnTime = 0;
+
+      // ===================== Yardımcılar =====================
+      const now = () => performance.now();
+      const clamp = (v, a, b) => Math.min(Math.max(v, a), b);
+      function rectOf(el) {
+        const r = el.getBoundingClientRect();
+        const cr = container.getBoundingClientRect();
+        return { left: r.left - cr.left, top: r.top - cr.top, width: r.width, height: r.height, bottom: GAME_HEIGHT - (r.top - cr.top) - r.height };
+      }
+      function isColliding(el1, el2) {
+        const a = rectOf(el1);
+        const b = rectOf(el2);
+        return (
+          a.left < b.left + b.width &&
+          a.left + a.width > b.left &&
+          a.bottom < b.bottom + b.height &&
+          a.bottom + a.height > b.bottom
+        );
+      }
+      function showMessage(text, duration = 2000) {
+        messageBox.textContent = text;
+        messageBox.style.opacity = 1;
+        setTimeout(() => { messageBox.style.opacity = 0; }, duration);
+      }
+
+      // ===================== Seviye Üretimi =====================
+      function createPlatform(x, y, w, h = 20) {
+        const el = document.createElement('div');
+        el.className = 'platform';
+        el.style.left = x + 'px';
+        el.style.bottom = y + 'px';
+        el.style.width = w + 'px';
+        el.style.height = h + 'px';
+        container.appendChild(el);
+        const obj = { el, x, y, w, h };
+        platforms.push(obj);
+        return obj;
+      }
+      function createDoor(x, y) {
+        const el = document.createElement('div');
+        el.className = 'door';
+        el.style.left = x + 'px';
+        el.style.bottom = y + 'px';
+        container.appendChild(el);
+        const obj = { el, x, y, unlocked: false };
+        doors.push(obj);
+        return obj;
+      }
+      function createEnemy(x, y) {
+        const el = document.createElement('div');
+        el.className = 'enemy';
+        el.style.left = x + 'px';
+        el.style.bottom = y + 'px';
+        const bar = document.createElement('div'); bar.className = 'health-bar';
+        const fill = document.createElement('div'); fill.className = 'health-fill';
+        bar.appendChild(fill); el.appendChild(bar);
+        container.appendChild(el);
+        const obj = { el, x, y, w: 40, h: 40, vx: (Math.random() < 0.5 ? -1 : 1) * (1.2 + Math.random()*0.8), vy: 0, health: 30, healthMax: 30, fill };
+        enemies.push(obj);
+        return obj;
+      }
+      function createBullet(x, y, vx, vy, damage) {
+        const el = document.createElement('div');
+        el.className = 'bullet';
+        el.style.left = x + 'px';
+        el.style.bottom = y + 'px';
+        container.appendChild(el);
+        const obj = { el, x, y, vx, vy, damage };
+        bullets.push(obj);
+        return obj;
+      }
+
+      function generateLevel(lvl) {
+        // Temizle
+        enemies.forEach(e => e.el.remove()); enemies = [];
+        bullets.forEach(b => b.el.remove()); bullets = [];
+        platforms.forEach(p => p.el.remove()); platforms = [];
+        doors.forEach(d => d.el.remove()); doors = [];
+
+        // Basit platform şablonu
+        createPlatform(0, GROUND_Y - 20, GAME_WIDTH, 20); // zemin
+        const rand = (min, max) => Math.random() * (max - min) + min;
+        for (let i = 0; i < 6; i++) {
+          const px = 80 + i * 150 + rand(-40, 40);
+          const py = 120 + (i % 2 === 0 ? 80 : 0) + rand(-20, 40);
+          const pw = 120 + rand(-20, 40);
+          createPlatform(clamp(px, 40, GAME_WIDTH - 200), clamp(py, 90, 420), pw);
+        }
+
+        // Kapı
+        const door = createDoor(GAME_WIDTH - 90, GROUND_Y);
+        door.unlocked = false;
+
+        // Düşman hedefi ve zamanlayıcı
+        enemiesToKill = 6 + (lvl - 1) * 2;
+        enemiesKilled = 0;
+        lastEnemySpawnTime = now();
+        showMessage(`Seviye ${lvl} - ${enemiesToKill} düşman yok et ve kapıya git!`, 2500);
+      }
+
+      // ===================== Girdi =====================
+      window.addEventListener('keydown', (e) => {
+        keys[e.code] = true;
+        if (e.code === 'Escape') {
+          if (!gameRunning) return;
+          if (isPaused) resumeGame(); else pauseGame();
+        }
+        // Silah değiştirme 1..3
+        if (e.code === 'Digit1') { player.currentWeapon = 'pistol'; updateWeaponDisplay(); }
+        if (e.code === 'Digit2') { player.currentWeapon = 'uzi'; updateWeaponDisplay(); }
+        if (e.code === 'Digit3') { player.currentWeapon = 'deagle'; updateWeaponDisplay(); }
+      });
+      window.addEventListener('keyup', (e) => { keys[e.code] = false; });
+
+      // ===================== Oyun Döngüsü =====================
+      function loop(ts) {
+        if (!lastTime) lastTime = ts;
+        const dt = ts - lastTime;
+        lastTime = ts;
+
+        if (gameRunning && !isPaused) {
+          updateSpawns();
+          updatePlayer();
+          updateEnemies();
+          updateBullets();
+          updateDoors();
+          updateParallax();
+        }
+        requestAnimationFrame(loop);
+      }
+
+      function updateSpawns() {
+        // Zorluk tabanlı üretim aralığı
+        const base = 2200;
+        const mod = difficulty === 'easy' ? 1.2 : difficulty === 'hard' ? 0.8 : 1;
+        const interval = Math.max(900, base * mod - level * 80);
+        if (enemiesToKill > 0 && now() - lastEnemySpawnTime > interval) {
+          // Rastgele bir platform seç ve düşman üret
+          const spawnPlatform = platforms[Math.floor(Math.random() * platforms.length)];
+          const sx = clamp(spawnPlatform.x + Math.random() * Math.max(10, spawnPlatform.w - 40), 10, GAME_WIDTH - 50);
+          const sy = spawnPlatform.y + spawnPlatform.h;
+          createEnemy(sx, sy);
+          enemiesToKill--;
+          lastEnemySpawnTime = now();
+        }
+      }
+
+      function updatePlayer() {
+        // Yatay hareket
+        if (keys['ArrowLeft'] || keys['KeyA']) {
+          player.vx = -player.speed;
+          player.facing = -1;
+          playerEl.style.transform = 'scaleX(-1)';
+          if (player.onGround) playerEl.classList.add('player-running');
+        } else if (keys['ArrowRight'] || keys['KeyD']) {
+          player.vx = player.speed;
+          player.facing = 1;
+          playerEl.style.transform = 'scaleX(1)';
+          if (player.onGround) playerEl.classList.add('player-running');
+        } else {
+          player.vx = 0;
+          playerEl.classList.remove('player-running');
+        }
+        // Zıplama (tek/duble yok basit)
+        if ((keys['ArrowUp'] || keys['KeyW']) && player.onGround) {
+          player.vy = player.jumpSpeed;
+          player.onGround = false;
+        }
+        // Ateş (Space)
+        if (keys['Space']) {
+          shoot();
+        }
+
+        player.x += player.vx;
+        player.x = clamp(player.x, 0, GAME_WIDTH - player.w);
+        player.vy -= GRAVITY;
+        player.y += player.vy;
+        player.onGround = false;
+
+        // Zemin
+        if (player.y < GROUND_Y) {
+          player.y = GROUND_Y;
+          player.vy = 0;
+          player.onGround = true;
+        }
+        // Platform çarpışması (üstten iniş)
+        for (const p of platforms) {
+          const px = p.x, pw = p.w, py = p.y, ph = p.h;
+          const withinX = player.x + player.w > px && player.x < px + pw;
+          const falling = player.vy <= 0;
+          const closeToTop = player.y >= py + ph - 12 && player.y <= py + ph + 12;
+          if (falling && withinX && closeToTop) {
+            player.y = py + ph;
+            player.vy = 0;
+            player.onGround = true;
+          }
+        }
+
+        playerEl.style.left = Math.round(player.x) + 'px';
+        playerEl.style.bottom = Math.round(player.y) + 'px';
+      }
+
+      function updateEnemies() {
+        for (let i = enemies.length - 1; i >= 0; i--) {
+          const e = enemies[i];
+          // Basit yürüyüş AI
+          e.x += e.vx;
+          // Kenardan dön
+          if (e.x < 10 || e.x > GAME_WIDTH - e.w - 10) e.vx *= -1;
+
+          // Platform üstünde kalma
+          let onPlat = false;
+          for (const p of platforms) {
+            const onTop = Math.abs(e.y - (p.y + p.h)) < 2;
+            const within = e.x + e.w > p.x && e.x < p.x + p.w;
+            if (onTop && within) { onPlat = true; break; }
+          }
+          if (!onPlat && e.y > GROUND_Y) {
+            e.vy -= GRAVITY * 0.6;
+            e.y += e.vy;
+            if (e.y < GROUND_Y) { e.y = GROUND_Y; e.vy = 0; }
+          }
+
+          // Oyuncuya çarpma
+          if (isColliding(playerEl, e.el)) {
+            damagePlayer(20);
+            // Geri it ve yok et
+            e.el.remove();
+            enemies.splice(i, 1);
+          } else {
+            e.el.style.left = Math.round(e.x) + 'px';
+            e.el.style.bottom = Math.round(e.y) + 'px';
+            e.fill.style.width = Math.max(0, (e.health / e.healthMax) * 100) + '%';
+          }
+        }
+      }
+
+      function updateBullets() {
+        for (let i = bullets.length - 1; i >= 0; i--) {
+          const b = bullets[i];
+          b.x += b.vx;
+          b.y += b.vy;
+          b.el.style.left = Math.round(b.x) + 'px';
+          b.el.style.bottom = Math.round(b.y) + 'px';
+
+          let hit = false;
+          for (let j = enemies.length - 1; j >= 0; j--) {
+            const e = enemies[j];
+            if (isColliding(b.el, e.el)) {
+              e.health -= b.damage;
+              if (e.health <= 0) {
+                e.el.remove();
+                enemies.splice(j, 1);
+                enemiesKilled++;
+                totalKills++;
+                addScore(20);
+              }
+              hit = true;
+              break;
+            }
+          }
+          if (hit || b.x < -40 || b.x > GAME_WIDTH + 40 || b.y < -40 || b.y > GAME_HEIGHT + 40) {
+            b.el.remove();
+            bullets.splice(i, 1);
+          }
+        }
+      }
+
+      function updateDoors() {
+        const door = doors[0];
+        if (!door) return;
+        if (enemiesToKill === 0 && enemies.length === 0 && !door.unlocked) {
+          door.unlocked = true;
+          door.el.style.background = 'linear-gradient(to right, #00cc00, #00aa00)';
+          showMessage('Tüm düşmanlar temizlendi! Kapı açıldı.');
+        }
+        if (door.unlocked && isColliding(playerEl, door.el)) {
+          endLevel();
+        }
+      }
+
+      function updateParallax() {
+        const layers = container.querySelectorAll('.parallax-layer');
+        layers.forEach((layer, idx) => {
+          const speed = (idx + 1) * 0.03;
+          layer.style.backgroundPosition = `${-player.x * speed}px center`;
+        });
+      }
+
+      // ===================== Oyun Durumu =====================
+      function addScore(v) { score += v; scoreEl.textContent = 'Jeton: ' + score; }
+      function damagePlayer(amount) {
+        if (player.shield > 0) {
+          const use = Math.min(player.shield, amount);
+          player.shield -= use;
+          shieldFillEl.style.width = Math.round((player.shield / Math.max(1, player.shieldMax)) * 100) + '%';
+          amount -= use;
+        }
+        if (amount > 0) {
+          player.health = Math.max(0, player.health - amount);
+          healthFillEl.style.width = Math.round((player.health / player.healthMax) * 100) + '%';
+          playerEl.classList.add('player-invincible');
+          setTimeout(() => playerEl.classList.remove('player-invincible'), 600);
+          if (player.health <= 0) {
+            return gameOver();
+          }
+        }
+      }
+
+      function shoot() {
+        const w = weapons[player.currentWeapon];
+        if (now() < w.cooldownTimer) return;
+        if (w.ammo !== Infinity && w.ammo <= 0) return;
+        if (w.ammo !== Infinity) w.ammo--;
+        w.cooldownTimer = now() + w.cooldown;
+
+        const startX = player.x + (player.facing === 1 ? player.w + 2 : -12);
+        const startY = player.y + player.h / 2 - 5;
+        const vx = (player.facing === 1 ? 1 : -1) * w.speed;
+        createBullet(startX, startY, vx, 0, w.damage);
+        updateWeaponDisplay();
+      }
+
+      function endLevel() {
+        level++;
+        if (level > MAX_LEVEL) {
+          gameRunning = false;
+          document.getElementById('final-score-win').textContent = String(score);
+          document.getElementById('total-kills').textContent = String(totalKills);
+          document.getElementById('completed-levels').textContent = String(MAX_LEVEL);
+          youWinScreen.classList.add('show');
+          return;
+        }
+        levelEl.textContent = 'Seviye: ' + level;
+        addScore(level * 50);
+        generateLevel(level);
+      }
+
+      function gameOver() {
+        gameRunning = false;
+        document.getElementById('final-score').textContent = String(score);
+        gameOverScreen.classList.add('show');
+      }
+
+      function updateWeaponDisplay() {
+        const w = weapons[player.currentWeapon];
+        weaponNameEl.textContent = 'Silah: ' + w.name;
+        ammoEl.textContent = 'Mermi: ' + (w.ammo === Infinity ? '∞' : w.ammo);
+      }
+
+      // ===================== UI Eylemleri =====================
+      function pauseGame() { isPaused = true; pauseScreen.classList.add('show'); }
+      function resumeGame() { isPaused = false; pauseScreen.classList.remove('show'); }
+      function showSettings() { settingsScreen.classList.add('show'); }
+      function saveSettings() {
+        settingsScreen.classList.remove('show');
+        difficulty = document.getElementById('difficulty-select').value;
+        showMessage('Ayarlar kaydedildi');
+      }
+      function exitToMenu() {
+        isPaused = false;
+        gameRunning = false;
+        pauseScreen.classList.remove('show');
+        gameOverScreen.classList.remove('show');
+        youWinScreen.classList.remove('show');
+        startScreen.classList.add('show');
+      }
+      function startGame(mode) {
+        // Basit mod anahtarı, şimdilik sadece etiket
+        level = 1;
+        score = 0;
+        totalKills = 0;
+        player.x = 100; player.y = 120; player.vx = 0; player.vy = 0; player.onGround = false;
+        player.health = player.healthMax = 100; player.shield = 0; player.shieldMax = 0;
+        player.currentWeapon = 'pistol';
+        updateWeaponDisplay();
+        shieldFillEl.style.width = '0%';
+        healthFillEl.style.width = '100%';
+        scoreEl.textContent = 'Jeton: 0';
+        levelEl.textContent = 'Seviye: 1';
+
+        startScreen.classList.remove('show');
+        gameOverScreen.classList.remove('show');
+        youWinScreen.classList.remove('show');
+        generateLevel(level);
+        gameRunning = true;
+        isPaused = false;
+      }
+      function restartGame() {
+        startGame('arcade');
+      }
+
+      // Global erişim (buton çağrıları için)
+      window.startGame = startGame;
+      window.pauseGame = pauseGame;
+      window.resumeGame = resumeGame;
+      window.exitToMenu = exitToMenu;
+      window.showSettings = showSettings;
+      window.saveSettings = saveSettings;
+      window.restartGame = restartGame;
+
+      // Başlat
+      requestAnimationFrame(loop);
+    </script>
+  </body>
+  </html>
+
+<!DOCTYPE html>
+<html lang="tr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
