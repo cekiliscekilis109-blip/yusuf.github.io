@@ -339,9 +339,9 @@
         <div class="box">
           <h1 style="margin:0 0 20px 0;">GELİŞMİŞ PLATFORM OYUNU</h1>
           <div style="margin-bottom:20px;">
-            <button class="btn" onclick="startGame('story')">Hikaye Modu</button>
-            <button class="btn" onclick="startGame('arcade')">Arcade Modu</button>
-            <button class="btn" onclick="showSettings()">Ayarlar</button>
+            <button class="btn" id="btn-start-story">Hikaye Modu</button>
+            <button class="btn" id="btn-start-arcade">Arcade Modu</button>
+            <button class="btn" id="btn-open-settings">Ayarlar</button>
           </div>
           <h3>Denetleyici</h3>
           <p>Hareket: A/D veya Sol/Sağ Oklar<br>Zıpla: W veya Yukarı Ok<br>Ateş: Boşluk</p>
@@ -352,9 +352,9 @@
       <div id="pause-screen" class="overlay">
         <div class="box">
           <h1>Duraklatıldı</h1>
-          <button class="btn" onclick="resumeGame()">Devam Et</button>
-          <button class="btn" onclick="showSettings()">Ayarlar</button>
-          <button class="btn" onclick="exitToMenu()">Menüye Dön</button>
+          <button class="btn" id="btn-resume">Devam Et</button>
+          <button class="btn" id="btn-open-settings-2">Ayarlar</button>
+          <button class="btn" id="btn-exit-1">Menüye Dön</button>
         </div>
       </div>
 
@@ -362,8 +362,8 @@
         <div class="box">
           <h1>Oyun Bitti</h1>
           <p>Toplam Jeton: <span id="final-score">0</span></p>
-          <button class="btn" onclick="restartGame()">Yeniden Dene</button>
-          <button class="btn" onclick="exitToMenu()">Menüye Dön</button>
+          <button class="btn" id="btn-restart-1">Yeniden Dene</button>
+          <button class="btn" id="btn-exit-2">Menüye Dön</button>
         </div>
       </div>
 
@@ -373,8 +373,8 @@
           <p>Toplam Jeton: <span id="final-score-win">0</span></p>
           <p>Öldürülen Düşmanlar: <span id="total-kills">0</span></p>
           <p>Tamamlanan Seviyeler: <span id="completed-levels">0</span></p>
-          <button class="btn" onclick="restartGame()">Yeniden Oyna</button>
-          <button class="btn" onclick="exitToMenu()">Menüye Dön</button>
+          <button class="btn" id="btn-restart-2">Yeniden Oyna</button>
+          <button class="btn" id="btn-exit-3">Menüye Dön</button>
         </div>
       </div>
 
@@ -394,7 +394,7 @@
             </select>
           </div>
           <div style="text-align:center;">
-            <button class="btn" onclick="saveSettings()">Kaydet ve Kapat</button>
+            <button class="btn" id="btn-save-settings">Kaydet ve Kapat</button>
           </div>
         </div>
       </div>
@@ -569,6 +569,10 @@
 
       // ===================== Girdi =====================
       window.addEventListener('keydown', (e) => {
+        // Varsayılan kaydırmayı engelle (Space/Ok tuşları)
+        if (['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) {
+          e.preventDefault();
+        }
         keys[e.code] = true;
         if (e.code === 'Escape') {
           if (!gameRunning) return;
@@ -579,7 +583,12 @@
         if (e.code === 'Digit2') { player.currentWeapon = 'uzi'; updateWeaponDisplay(); }
         if (e.code === 'Digit3') { player.currentWeapon = 'deagle'; updateWeaponDisplay(); }
       });
-      window.addEventListener('keyup', (e) => { keys[e.code] = false; });
+      window.addEventListener('keyup', (e) => {
+        if (['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) {
+          e.preventDefault();
+        }
+        keys[e.code] = false;
+      });
 
       // ===================== Oyun Döngüsü =====================
       function loop(ts) {
@@ -859,16 +868,24 @@
         startGame('arcade');
       }
 
-      // Global erişim (buton çağrıları için)
-      window.startGame = startGame;
-      window.pauseGame = pauseGame;
-      window.resumeGame = resumeGame;
-      window.exitToMenu = exitToMenu;
-      window.showSettings = showSettings;
-      window.saveSettings = saveSettings;
-      window.restartGame = restartGame;
+      // UI buton bağlama (inline onclick yerine)
+      function bindUI() {
+        const q = (id) => document.getElementById(id);
+        q('btn-start-story')?.addEventListener('click', () => startGame('story'));
+        q('btn-start-arcade')?.addEventListener('click', () => startGame('arcade'));
+        q('btn-open-settings')?.addEventListener('click', showSettings);
+        q('btn-resume')?.addEventListener('click', resumeGame);
+        q('btn-open-settings-2')?.addEventListener('click', showSettings);
+        q('btn-exit-1')?.addEventListener('click', exitToMenu);
+        q('btn-restart-1')?.addEventListener('click', restartGame);
+        q('btn-exit-2')?.addEventListener('click', exitToMenu);
+        q('btn-restart-2')?.addEventListener('click', restartGame);
+        q('btn-exit-3')?.addEventListener('click', exitToMenu);
+        q('btn-save-settings')?.addEventListener('click', saveSettings);
+      }
 
       // Başlat
+      bindUI();
       requestAnimationFrame(loop);
     </script>
   </body>
