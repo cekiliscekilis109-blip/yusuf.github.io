@@ -1,0 +1,26 @@
+{
+  "name": "@mb/server",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "ws": "^8.18.0",
+    "nanoid": "^5.0.7",
+    "@mb/shared": "*"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.11.19",
+    "@types/ws": "^8.5.10",
+    "tsx": "^4.19.0",
+    "typescript": "^5.4.0"
+  }
+}
