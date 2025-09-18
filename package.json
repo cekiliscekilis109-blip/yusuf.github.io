@@ -1,0 +1,18 @@
+{
+  "name": "mb-web-monorepo",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Mount & Blade-like web game monorepo (server, client, shared)",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w @mb/shared && npm run build -w @mb/server && npm run build -w @mb/client",
+    "dev": "npm run dev -w @mb/server & npm run dev -w @mb/client",
+    "lint": "echo 'No linter configured yet'",
+    "typecheck": "npm run typecheck -w @mb/shared && npm run typecheck -w @mb/server && npm run typecheck -w @mb/client"
+  },
+  "engines": {
+    "node": ">=18.18.0"
+  }
+}
